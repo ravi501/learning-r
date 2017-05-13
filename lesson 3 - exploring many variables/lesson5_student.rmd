@@ -1,0 +1,400 @@
+Lesson 5
+========================================================
+
+### Multivariate Data
+Notes:
+
+***
+
+### Moira Perceived Audience Size Colored by Age
+Notes:
+
+***
+
+### Third Qualitative Variable
+Notes:
+
+```{r Third Qualitative Variable}
+pf <- read.csv('pseudo_facebook.tsv', sep = '\t')
+
+ggplot(aes(x = gender, y = age),
+       data = subset(pf, !is.na(gender))) + geom_histogram()
+
+# Write code to create a new data frame,
+# called 'pf.fc_by_age_gender', that contains
+# information on each age AND gender group.
+
+# The data frame should contain the following variables:
+
+#    mean_friend_count,
+#    median_friend_count,
+#    n (the number of users in each age and gender grouping)
+
+# Here is an example of the structure of your data frame. Your
+# data values will be different. Note that if you are grouping by
+# more than one variable, you will probably need to call the
+# ungroup() function. 
+
+#   age gender mean_friend_count median_friend_count    n
+# 1  13 female          247.2953                 150  207
+# 2  13   male          184.2342                  61  265
+# 3  14 female          329.1938                 245  834
+# 4  14   male          157.1204                  88 1201
+
+pf.fc_by_age_gender <- pf %>%
+  filter(!is.na(gender)) %>%
+  group_by(age, gender) %>%
+  summarise(mean_friend_count = mean(friend_count),
+            median_friend_count = median(friend_count),
+            n = n()) %>%
+  ungroup() %>%
+  arrange(age)
+
+head(pf.fc_by_age_gender)
+
+?ungroup
+names(pf)
+```
+
+***
+
+### Plotting Conditional Summaries
+Notes:
+
+```{r Plotting Conditional Summaries}
+library('ggplot2')
+
+# Create a line graph showing the
+# median friend count over the ages
+# for each gender. Be sure to use
+# the data frame you just created,
+# pf.fc_by_age_gender.
+names(pf.fc_by_age_gender)
+
+ggplot(aes(x = age, y = median_friend_count), data = pf.fc_by_age_gender) + 
+  geom_line(aes(color = gender))
+
+```
+
+***
+
+### Thinking in Ratios
+Notes:
+
+***
+
+### Wide and Long Format
+Notes:
+
+***
+
+### Reshaping Data
+Notes:
+
+```{r}
+install.packages('reshape2')
+library(reshape2)
+
+pf.fc_by_age_gender.wide <- dcast(pf.fc_by_age_gender,
+                                  age ~ gender,
+                                  value.var = 'median_friend_count') 
+```
+
+
+***
+
+### Ratio Plot
+Notes:
+
+```{r Ratio Plot}
+# Plot the ratio of the female to male median
+# friend counts using the data frame
+# pf.fc_by_age_gender.wide.
+
+# Think about what geom you should use.
+# Add a horizontal line to the plot with
+# a y intercept of 1, which will be the
+# base line. Look up the documentation
+# for geom_hline to do that. Use the parameter
+# linetype in geom_hline to make the
+# line dashed.
+
+# The linetype parameter can take the values 0-6:
+# 0 = blank, 1 = solid, 2 = dashed
+# 3 = dotted, 4 = dotdash, 5 = longdash
+# 6 = twodash
+
+ggplot(aes(x = age, y = female/male), data = pf.fc_by_age_gender.wide) + 
+  geom_line() + 
+  geom_hline(yintercept = 1, alpha = 0.3, linetype = 2)
+
+
+```
+
+***
+
+### Third Quantitative Variable
+Notes:
+
+```{r Third Quantitative Variable}
+# Create a variable called year_joined
+# in the pf data frame using the variable
+# tenure and 2014 as the reference year.
+
+# The variable year joined should contain the year
+# that a user joined facebook.
+
+names(pf)
+
+pf$year_joined <- floor(2014 - pf$tenure/365)
+
+```
+
+***
+
+### Cut a Variable
+Notes:
+
+```{r Cut a Variable}
+# Create a new variable in the data frame
+# called year_joined.bucket by using
+# the cut function on the variable year_joined.
+
+# You need to create the following buckets for the
+# new variable, year_joined.bucket
+
+#        (2004, 2009]
+#        (2009, 2011]
+#        (2011, 2012]
+#        (2012, 2014]
+
+# Note that a parenthesis means exclude the year and a
+# bracket means include the year.
+
+pf$year_joined.bucket <- cut(pf$year_joined,
+                             c(2004, 2009, 2011, 2012, 2014))
+
+
+
+```
+
+***
+
+### Plotting it All Together
+Notes:
+
+```{r Plotting it All Together}
+
+table(pf$year_joined.bucket, useNA = 'ifany')
+
+ggplot(aes(x = age, y = friend_count),
+       data = subset(pf, !is.na(year_joined.bucket))) + 
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = median)
+
+ggplot(aes(x = age, y = friend_count),
+       data = subset(pf, !is.na(year_joined.bucket))) + 
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = median)
+```
+
+***
+
+### Plot the Grand Mean
+Notes:
+
+```{r Plot the Grand Mean}
+
+ggplot(aes(x = age, y = friend_count),
+       data = subset(pf, !is.na(year_joined.bucket))) + 
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = mean)
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = mean, linetype = 2)
+
+```
+
+***
+
+### Friending Rate
+Notes:
+
+```{r Friending Rate}
+with(subset(pf, tenure >= 1), summary(friend_count / tenure))
+```
+
+***
+
+### Friendships Initiated
+Notes:
+
+What is the median friend rate?
+
+What is the maximum friend rate?
+
+```{r Friendships Initiated}
+ggplot(aes(x = age, y = friendships_initiated / tenure),
+       data = subset(pf, tenure >= 1)) + 
+  geom_line(aes(color = year_joined.bucket), stat = 'summary', fun.y = mean)
+
+```
+
+***
+
+### Bias-Variance Tradeoff Revisited
+Notes:
+
+```{r Bias-Variance Tradeoff Revisited}
+
+ggplot(aes(x = tenure, y = friendships_initiated / tenure),
+       data = subset(pf, tenure >= 1)) +
+  geom_line(aes(color = year_joined.bucket),
+            stat = 'summary',
+            fun.y = mean)
+
+ggplot(aes(x = 7 * round(tenure / 7), y = friendships_initiated / tenure),
+       data = subset(pf, tenure > 0)) +
+  geom_line(aes(color = year_joined.bucket),
+            stat = "summary",
+            fun.y = mean)
+
+ggplot(aes(x = 30 * round(tenure / 30), y = friendships_initiated / tenure),
+       data = subset(pf, tenure > 0)) +
+  geom_line(aes(color = year_joined.bucket),
+            stat = "summary",
+            fun.y = mean)
+
+ggplot(aes(x = 90 * round(tenure / 90), y = friendships_initiated / tenure),
+       data = subset(pf, tenure > 0)) +
+  geom_line(aes(color = year_joined.bucket),
+            stat = "summary",
+            fun.y = mean)
+
+```
+
+***
+
+### Sean's NFL Fan Sentiment Study
+Notes:
+
+***
+
+### Introducing the Yogurt Data Set
+Notes:
+
+***
+
+### Histograms Revisited
+Notes:
+
+```{r Histograms Revisited}
+yo <- read.csv('yogurt.csv')
+str(yo)
+names(yo)
+
+#Change the is from an int to a factor
+yo$id <- factor(yo$id)
+
+library(ggplot2)
+qplot(data = yo, x = price)
+
+```
+
+***
+
+### Number of Purchases
+Notes:
+
+```{r Number of Purchases}
+summary(yo)
+
+length(unique(yo$price))
+
+table(yo$price)
+
+yo$all.purchases <- transform(yo, all.purchases = strawberry + blueberry + pina.colada + plain + mixed.berry)
+
+summary(yo$all.purchases)
+```
+
+***
+
+### Prices over Time
+Notes:
+
+```{r Prices over Time}
+
+ggplot(aes(x = time, y = price), data = yo) + 
+  geom_jitter(alpha = 1/4, shape = 21, fill = I('#F79420')) 
+```
+
+***
+
+### Sampling Observations
+Notes:
+
+***
+
+### Looking at Samples of Households
+
+```{r Looking at Sample of Households}
+
+set.seed(4230)
+
+sample.ids <- sample(levels(yo$id), 16)
+
+ggplot(aes(x = time, y = price),
+       data = subset(yo, id %in% sample.ids)) + 
+  facet_wrap( ~ id) + 
+  geom_line() + 
+  geom_point(aes(size = all.purchases), pch = 1)
+```
+
+***
+
+### The Limits of Cross Sectional Data
+Notes:
+
+***
+
+### Many Variables
+Notes:
+
+***
+
+### Scatterplot Matrix
+Notes:
+
+***
+
+### Even More Variables
+Notes:
+
+***
+
+### Heat Maps
+Notes:
+
+```{r}
+nci <- read.table("nci.tsv")
+colnames(nci) <- c(1:64)
+```
+
+```{r}
+nci.long.samp <- melt(as.matrix(nci[1:200,]))
+names(nci.long.samp) <- c("gene", "case", "value")
+head(nci.long.samp)
+
+ggplot(aes(y = gene, x = case, fill = value),
+  data = nci.long.samp) +
+  geom_tile() +
+  scale_fill_gradientn(colours = colorRampPalette(c("blue", "red"))(100))
+```
+
+
+***
+
+### Analyzing Three of More Variables
+Reflection:
+
+***
+
+Click **KnitHTML** to see all of your hard work and to have an html
+page of this lesson, your answers, and your notes!
+
